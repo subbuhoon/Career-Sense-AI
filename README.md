@@ -1,206 +1,289 @@
-# Career Sense AI 🎓
+# Career Sense AI
 
-> **Predictive Placement & Salary Estimation using Machine Learning**
+### Predictive Placement & Salary Prediction System
 
-Career Sense AI is a machine learning system that predicts whether a student will be placed and estimates their expected salary — based on academic performance, skills, and other attributes. It combines a **Random Forest Classifier**, a **Genetic Algorithm for feature selection**, and a **feedback-based adaptive mechanism** into one end-to-end pipeline.
+Career Sense AI is a machine learning system designed to analyze student attributes and predict placement outcomes while estimating expected salary. The project combines **Random Forest**, **Genetic Algorithm-based feature selection**, and a **feedback-driven feature adjustment mechanism** into a single predictive workflow.
 
----
+## Overview
 
-## 🚀 Demo
+The system takes candidate attributes such as academic performance, programming skills, aptitude, communication skills, and other encoded features to generate a placement prediction.
 
-> Run on Google Colab — no local setup needed.
+The workflow consists of four main components:
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/)
+* **Placement Classification** — Random Forest Classifier
+* **Feature Selection** — Custom Genetic Algorithm
+* **Salary Estimation** — Random Forest Regressor
+* **Adaptive Feedback** — Feature-weight adjustment based on prediction feedback
 
----
+The Genetic Algorithm searches through different feature combinations and evaluates them using cross-validation before selecting a feature subset for the final placement model.
 
-## 📌 Features
+## System Architecture
 
-- ✅ Predicts **placement status** (Placed / Not Placed)
-- ✅ Estimates **expected salary** when salary data is available
-- ✅ Uses a **Genetic Algorithm** to automatically select the best features
-- ✅ Includes a **feedback mechanism** that adjusts feature weights after each prediction
-- ✅ Fully runnable in **Google Colab** — just upload your dataset and go
-
----
-
-## 🧠 How It Works
-
+```text
+                    Student Dataset
+                          │
+                          ▼
+                 Data Preprocessing
+                          │
+                          ▼
+                Categorical Encoding
+                          │
+                          ▼
+              ┌──────────────────────┐
+              │ Random Forest        │
+              │ Baseline Classifier  │
+              └──────────┬───────────┘
+                         │
+                         ▼
+              Genetic Algorithm
+              Feature Selection
+                         │
+                         ▼
+              Optimized Feature Set
+                    │           │
+                    ▼           ▼
+          Random Forest       Random Forest
+             Classifier        Regressor
+                    │           │
+                    ▼           ▼
+          Placement Status    Salary Estimate
+                    │
+                    ▼
+          Feedback-Based Weight
+               Adjustment
 ```
-Student Dataset
-      │
-      ▼
-Data Preprocessing & Encoding
-      │
-      ▼
-Random Forest Baseline Classifier
-      │
-      ▼
-Genetic Algorithm — Feature Selection
-      │
-      ▼
-Optimized Feature Set
-      │                │
-      ▼                ▼
-RF Classifier     RF Regressor
-(Placement)        (Salary)
-      │
-      ▼
-Feedback → Feature Weight Update
+
+## Key Components
+
+### 1. Placement Prediction
+
+A **Random Forest Classifier** is used to predict the candidate's placement status.
+
+The model generates a probability for the positive placement class:
+
+```text
+Placement Probability → Prediction
 ```
 
-### Pipeline Steps
+A probability of `0.5` or higher is classified as **PLACED**; otherwise, the candidate is classified as **NOT PLACED**.
 
-| Step | Description |
-|------|-------------|
-| **1. Preprocessing** | Load data, remove IDs, encode categoricals, train/test split |
-| **2. Baseline Model** | Train a Random Forest on all features |
-| **3. Feature Selection** | Genetic Algorithm finds the best feature subset |
-| **4. Optimized Model** | Retrain Random Forest on selected features |
-| **5. Salary Model** | Train a Random Forest Regressor (if salary column exists) |
-| **6. Prediction** | Predict placement + estimate salary for new candidates |
-| **7. Feedback** | User marks prediction correct/wrong → weights update |
+### 2. Genetic Algorithm Feature Selection
 
----
+A custom Genetic Algorithm is used to identify a useful subset of input features.
 
-## ⚙️ Genetic Algorithm Details
+Each individual represents a possible feature combination using a binary chromosome:
 
-Each individual in the population is a **binary chromosome** representing which features to include:
-
-```
+```text
 [1, 0, 1, 1, 0, 1]
- ↑        ↑
-selected  excluded
 ```
 
-| Parameter | Value |
-|-----------|-------|
-| Population Size | 10 |
-| Generations | 5 |
-| Cross-Validation | 3-Fold |
-| Selection | Top 5 individuals |
-| Crossover | Single-point |
-| Mutation | Random bit flip |
+where:
 
----
+* `1` → feature selected
+* `0` → feature excluded
 
-## 🔄 Feedback Mechanism
+The algorithm performs:
 
-After each prediction, the user provides feedback:
+1. Population initialization
+2. Fitness evaluation
+3. Selection of top individuals
+4. Crossover
+5. Mutation
+6. Generation of a new population
 
+The fitness of each feature subset is calculated using **3-fold cross-validation** with a Random Forest classifier.
+
+#### Genetic Algorithm Configuration
+
+| Parameter             |               Value |
+| --------------------- | ------------------: |
+| Population Size       |                  10 |
+| Number of Generations |                   5 |
+| Cross-Validation      |              3-Fold |
+| Selected Individuals  |               Top 5 |
+| Crossover             |        Single-point |
+| Mutation              | Random bit mutation |
+
+### 3. Salary Prediction
+
+When the dataset contains the `Salary_Offered_USD` attribute, a **Random Forest Regressor** is trained to estimate the expected salary.
+
+The regression model uses the feature subset selected during the feature-selection stage.
+
+### 4. Feedback-Based Adaptation
+
+The project includes a lightweight adaptive mechanism implemented through the `SimpleRL` class.
+
+Each selected feature starts with a weight of:
+
+```text
+1.0
 ```
-correct   →  feature weights increase slightly
-wrong     →  feature weights decrease slightly
+
+The learning rate is:
+
+```text
+0.05
 ```
 
-- Initial weight per feature: `1.0`
-- Learning rate: `0.05`
+After each prediction, the user can provide feedback:
 
-> ⚠️ This is a lightweight adaptive mechanism, not a full reinforcement learning system.
-
----
-
-## 📂 Project Structure
-
+```text
+correct
 ```
+
+or
+
+```text
+wrong
+```
+
+The feature weights are then adjusted based on the feedback before subsequent predictions.
+
+This provides a simple mechanism for incorporating user feedback into the prediction process. It is **not a full reinforcement learning implementation**.
+
+## Data Preprocessing
+
+The preprocessing pipeline performs the following operations:
+
+* Loads the dataset using Pandas.
+* Removes the `Student_ID` identifier.
+* Encodes categorical attributes using `LabelEncoder`.
+* Separates the placement target from the input features.
+* Splits the data into training and testing sets.
+* Evaluates feature subsets through cross-validation during Genetic Algorithm optimization.
+
+The encoded attributes include:
+
+* `Gender`
+* `Branch`
+* `Programming_Skills`
+* `Aptitude_Score`
+* `Communication_Skills`
+* `Placement_Status`
+
+The original dataset is **not included in this repository**.
+
+## Machine Learning Workflow
+
+### Baseline Model
+
+A Random Forest Classifier is first trained using the available input features to establish a baseline.
+
+### Feature Optimization
+
+The Genetic Algorithm evaluates different feature combinations using cross-validation and selects the best-performing feature subset from the final generation.
+
+### Optimized Model
+
+A second Random Forest Classifier is trained using the selected features.
+
+### Salary Model
+
+A Random Forest Regressor is trained separately when salary data is available.
+
+## Prediction Pipeline
+
+The prediction function follows this process:
+
+```text
+Candidate Input
+      ↓
+Selected Feature Extraction
+      ↓
+Feature-Weight Adjustment
+      ↓
+Placement Probability
+      ↓
+Placement Classification
+      ↓
+Salary Estimation
+      ↓
+User Feedback
+      ↓
+Feature-Weight Update
+```
+
+Example:
+
+```python
+predict_student([3.2, 1, 1, 6, 7, 5, 1])
+```
+
+The system returns the placement probability and prediction and, when applicable, an estimated salary.
+
+## Technologies
+
+| Technology   | Purpose                                    |
+| ------------ | ------------------------------------------ |
+| Python       | Core implementation                        |
+| Pandas       | Data loading and manipulation              |
+| NumPy        | Numerical operations and Genetic Algorithm |
+| Scikit-learn | Machine learning and evaluation            |
+| Google Colab | Development and experimentation            |
+
+## Project Structure
+
+```text
 Career-Sense-AI/
 │
-├── 366Project.ipynb      # Main notebook
-├── README.md             # Project documentation
-└── requirements.txt      # Python dependencies
+├── 366Project.ipynb
+├── README.md
+└── requirements.txt
 ```
 
----
+## Installation
 
-## 🛠️ Tech Stack
-
-| Technology | Purpose |
-|------------|---------|
-| Python | Core language |
-| Pandas | Data loading & manipulation |
-| NumPy | Numerical operations & GA logic |
-| Scikit-learn | ML models & evaluation |
-| Google Colab | Development environment |
-
----
-
-## 📦 Installation
+Clone the repository and install the required dependencies:
 
 ```bash
-git clone https://github.com/subbuhoon/Career-Sense-AI.git
+git clone <your-repository-url>
 cd Career-Sense-AI
 pip install -r requirements.txt
 ```
 
----
+## Running the Project
 
-## ▶️ Running the Project
+### Google Colab
 
-### Option 1 — Google Colab (Recommended)
+1. Open `366Project.ipynb` in Google Colab.
+2. Run the notebook from the beginning.
+3. Upload the dataset when prompted.
+4. Allow the preprocessing and baseline model to run.
+5. Run the Genetic Algorithm feature-selection stage.
+6. Train the optimized placement classifier.
+7. Train the salary regression model if salary data is available.
+8. Run the prediction examples.
+9. Provide feedback when prompted.
 
-1. Open `366Project.ipynb` in Google Colab
-2. Run all cells from top to bottom
-3. Upload your dataset when prompted
-4. View placement predictions and salary estimates
-5. Provide feedback when asked
+### Local Jupyter Environment
 
-### Option 2 — Local Jupyter
+Install the dependencies:
 
 ```bash
 pip install -r requirements.txt
-jupyter notebook 366Project.ipynb
 ```
 
-Run cells sequentially.
+Open:
 
----
+```text
+366Project.ipynb
+```
 
-## 📊 Input Features
+and execute the notebook cells sequentially.
 
-The model uses the following encoded attributes:
 
-- `Gender`
-- `Branch`
-- `Programming_Skills`
-- `Aptitude_Score`
-- `Communication_Skills`
-- `Placement_Status` *(target)*
-- `Salary_Offered_USD` *(optional — for salary prediction)*
+## Future Improvements
 
-> The dataset is not included in this repository. Bring your own placement dataset in CSV format.
+* Develop a dedicated job recommendation engine based on candidate skills and job requirements.
+* Add comprehensive classification and regression evaluation metrics.
+* Compare multiple machine learning algorithms.
+* Improve the Genetic Algorithm with more advanced evolutionary strategies.
+* Expand the dataset with real-world employment and job-market information.
+* Develop an interactive web application for candidate predictions.
+* Integrate real-time job-market data.
+* Replace the basic feedback mechanism with a more rigorous adaptive learning approach.
 
----
+## License
 
-## ⚠️ Limitations
-
-- Salary prediction requires a `Salary_Offered_USD` column in the dataset
-- No regression metrics (MAE, RMSE, R²) are currently calculated
-- The feedback system is simplified — not a true RL implementation
-- Model performance depends heavily on dataset size and quality
-- Does not recommend specific job roles
-
----
-
-## 🔮 Future Improvements
-
-- [ ] Add a job recommendation engine based on candidate skills
-- [ ] Include classification and regression evaluation metrics
-- [ ] Compare multiple ML algorithms (XGBoost, SVM, etc.)
-- [ ] Upgrade the Genetic Algorithm with advanced evolutionary strategies
-- [ ] Build an interactive web app (Streamlit or Flask)
-- [ ] Integrate real-time job market data
-- [ ] Replace the feedback mechanism with proper reinforcement learning
-
----
-
-## 👤 Author
-
-**Rahma Kamal**
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?logo=linkedin)](https://www.linkedin.com/in/rahma-kamal-228766439)
-[![GitHub](https://img.shields.io/badge/GitHub-subbuhoon-black?logo=github)](https://github.com/subbuhoon)
-
----
-
-## 📄 License
-
-This project is intended for **educational and portfolio purposes** only.
+This project is intended for educational and portfolio purposes.
